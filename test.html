@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      .spectrum_underlay {
+        width: 800px;
+        height: 200px;
+        border: 0;
+        display: inline;
+        float: left;
+        margin-right: -800px;
+      }
+      .graph {
+        width: 800px;
+        height: 200px;
+        border: 0;
+        display: inline;
+        float: right;
+      }
+    </style>
+    <script src="piecewise.js"></script>
+    <script src="colors.js"></script>
+    <script src="radiometry.js"></script>
+    <script src="thinfilm.js"></script>
+    <!--<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        //var filter = generateFilter(1200., 0.9);
+        //var filter = illuminants.blackbody(5700);
+        //var filter = illuminants.cieD65;
+        //var darr = filter.points;
+        //darr = [['nm','value']].concat(darr);
+        //var data = google.visualization.arrayToDataTable(darr);
+        var darr = getVisibleSpectrum(380, 750, 800);
+        var data = google.visualization.arrayToDataTable([['nm','r','g','b','Y']].concat(darr));
+
+        var options = {
+          theme: 'maximized',
+          curveType: 'function',
+          //colors: ['transparent','black'],
+          //colors: ['white'],
+          colors: ['red','green','blue','white'],
+          //areaOpacity: 1.0,
+          //isStacked: true,
+          backgroundColor: 'transparent',
+          chartArea: {
+            //backgroundColor: 'white',
+            left: 0,
+            top: 0,
+            width: 800,
+            height: 200
+          },
+          hAxis: {
+            baselineColor: 'white',
+            gridlines: { color: 'transparent' },
+            viewWindow: { min: 380, max: 750 }
+          },
+          vAxis: {
+            baselineColor: 'white',
+            gridlines: { color: 'transparent' },
+            viewWindow: {
+              max: 1.05,
+              min: 0
+            }
+          },
+          legend: {
+            position: 'none'
+          },
+          pointsVisible: false,
+        };
+
+        var chart = new google.visualization.LineChart(document.getElementById('chart_test'));
+        //var chart = new google.visualization.AreaChart(document.getElementById('chart_test'));
+
+        chart.draw(data, options);
+
+        //paintVisibleSpectrum('cnv_test', 380, 750, 800);
+        paintVisibleSpectrum('cnv_test', darr);
+      }
+    </script>-->
+  </head>
+  <body>
+    <div style="width: 800px; height: 200px">
+      <div class="spectrum_underlay">
+        <canvas id="cnv_test" width="800" height="200"></canvas>
+      </div>
+      <div id="chart_test" class="graph"></div>
+    </div>
+  </body>
+  <script type="text/javascript">
+    //paintInterference("cnv_test", 1.0, 0, 2000, 800);
+    paintVisibleSpectrum("cnv_test", 380, 750);
+  </script>
+</html>
+
