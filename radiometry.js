@@ -1,6 +1,5 @@
-var cie1931observer = {};
-
-cie1931observer.data = [
+var cie1931observer = (function() {
+  var data = [
     [375,	0.000000,	0.000000,	0.000000],
     [380,	0.001368,	0.000039,	0.006450],
     [385,	0.002236,	0.000064,	0.010550],
@@ -86,188 +85,176 @@ cie1931observer.data = [
     [785,	0.000000,	0.000000,	0.000000],
   ];
 
-cie1931observer.extractFun = function(col) {
+  var extractFun = function(col) {
     var samples = [];
     var i;
-    for (i = 0; i < cie1931observer.data.length; i++) {
-      samples.push([cie1931observer.data[i][0], cie1931observer.data[i][col]]);
+    for (i = 0; i < data.length; i++) {
+      samples.push([data[i][0], data[i][col]]);
     }
     // scale is to put illuminants in more normalized range
     return new PiecewiseLinearFunction(samples).scale(1./80.);
   };
 
-cie1931observer.x = cie1931observer.extractFun(1);
-cie1931observer.y = cie1931observer.extractFun(2);
-cie1931observer.z = cie1931observer.extractFun(3);
+  var x = extractFun(1);
+  var y = extractFun(2);
+  var z = extractFun(3);
 
-cie1931observer.spectrumToXyz = function(spectrum) {
-  return [
-      cie1931observer.x.multiply(spectrum).integrate(),
-      cie1931observer.y.multiply(spectrum).integrate(),
-      cie1931observer.z.multiply(spectrum).integrate()
-    ];
-}
+  var spectrumToXyz = function(spectrum) {
+    return [
+        x.multiply(spectrum).integrate(),
+        y.multiply(spectrum).integrate(),
+        z.multiply(spectrum).integrate()
+      ];
+  }
 
-cie1931observer.spectrumToSrgbHex = function(spectrum) {
-  var c = cie1931observer.spectrumToXyz(spectrum);
-  c = colors.XYZ_to_srgb_linear_clamp(c);
-  c = colors.srgb_linear_to_srgb(c);
-  return colors.hexify(srgb);
-}
+  return { x:x, y:y, z:z, spectrumToXyz:spectrumToXyz };
+})();
 
-var illuminants = {};
-
-illuminants.normalize = function(spectrum) {
-  var c = cie1931observer.spectrumToXyz(spectrum);
-  c = colors.XYZ_to_xyY(c);
-  c = colors.xyY_clamp_to_srgb_gamut(c);
-  c = colors.xyY_to_XYZ(c);
-  c = colors.XYZ_to_srgb_linear(c);
-  var scale = 0.;
-  var i;
-  for (i = 0; i < 3; i++) {
-    if (c[i] > scale) {
-      scale = c[i];
+var illuminants = (function() {
+  var normalize = function(spectrum) {
+    var c = cie1931observer.spectrumToXyz(spectrum);
+    c = colors.XYZ_to_xyY(c);
+    c = colors.xyY_clamp_to_srgb_gamut(c);
+    c = colors.xyY_to_XYZ(c);
+    c = colors.XYZ_to_srgb_linear(c);
+    var scale = 0.;
+    var i;
+    for (i = 0; i < 3; i++) {
+      if (c[i] > scale) {
+        scale = c[i];
+      }
     }
+    return spectrum.scale(1. / scale);
   }
-  return spectrum.scale(1. / scale);
-}
 
-illuminants.cieD65 = illuminants.normalize(new PiecewiseLinearFunction([
-    //[295,	0.000000],
-    [300,	0.034100],
-    [305,	1.664300],
-    [310,	3.294500],
-    [315,	11.765200],
-    [320,	20.236000],
-    [325,	28.644700],
-    [330,	37.053500],
-    [335,	38.501100],
-    [340,	39.948800],
-    [345,	42.430200],
-    [350,	44.911700],
-    [355,	45.775000],
-    [360,	46.638300],
-    [365,	49.363700],
-    [370,	52.089100],
-    [375,	51.032300],
-    [380,	49.975500],
-    [385,	52.311800],
-    [390,	54.648200],
-    [395,	68.701500],
-    [400,	82.754900],
-    [405,	87.120400],
-    [410,	91.486000],
-    [415,	92.458900],
-    [420,	93.431800],
-    [425,	90.057000],
-    [430,	86.682300],
-    [435,	95.773600],
-    [440,	104.865000],
-    [445,	110.936000],
-    [450,	117.008000],
-    [455,	117.410000],
-    [460,	117.812000],
-    [465,	116.336000],
-    [470,	114.861000],
-    [475,	115.392000],
-    [480,	115.923000],
-    [485,	112.367000],
-    [490,	108.811000],
-    [495,	109.082000],
-    [500,	109.354000],
-    [505,	108.578000],
-    [510,	107.802000],
-    [515,	106.296000],
-    [520,	104.790000],
-    [525,	106.239000],
-    [530,	107.689000],
-    [535,	106.047000],
-    [540,	104.405000],
-    [545,	104.225000],
-    [550,	104.046000],
-    [555,	102.023000],
-    [560,	100.000000],
-    [565,	98.167100],
-    [570,	96.334200],
-    [575,	96.061100],
-    [580,	95.788000],
-    [585,	92.236800],
-    [590,	88.685600],
-    [595,	89.345900],
-    [600,	90.006200],
-    [605,	89.802600],
-    [610,	89.599100],
-    [615,	88.648900],
-    [620,	87.698700],
-    [625,	85.493600],
-    [630,	83.288600],
-    [635,	83.493900],
-    [640,	83.699200],
-    [645,	81.863000],
-    [650,	80.026800],
-    [655,	80.120700],
-    [660,	80.214600],
-    [665,	81.246200],
-    [670,	82.277800],
-    [675,	80.281000],
-    [680,	78.284200],
-    [685,	74.002700],
-    [690,	69.721300],
-    [695,	70.665200],
-    [700,	71.609100],
-    [705,	72.979000],
-    [710,	74.349000],
-    [715,	67.976500],
-    [720,	61.604000],
-    [725,	65.744800],
-    [730,	69.885600],
-    [735,	72.486300],
-    [740,	75.087000],
-    [745,	69.339800],
-    [750,	63.592700],
-    [755,	55.005400],
-    [760,	46.418200],
-    [765,	56.611800],
-    [770,	66.805400],
-    [775,	65.094100],
-    [780,	63.382800],
-    [785,	63.843400],
-    [790,	64.304000],
-    [795,	61.877900],
-    [800,	59.451900],
-    [805,	55.705400],
-    [810,	51.959000],
-    [815,	54.699800],
-    [820,	57.440600],
-    [825,	58.876500],
-    [830,	60.312500],
-    //[835,	0.000000],
-  ]));
+  var cieD65 = normalize(new PiecewiseLinearFunction([
+      [300,	0.034100],
+      [305,	1.664300],
+      [310,	3.294500],
+      [315,	11.765200],
+      [320,	20.236000],
+      [325,	28.644700],
+      [330,	37.053500],
+      [335,	38.501100],
+      [340,	39.948800],
+      [345,	42.430200],
+      [350,	44.911700],
+      [355,	45.775000],
+      [360,	46.638300],
+      [365,	49.363700],
+      [370,	52.089100],
+      [375,	51.032300],
+      [380,	49.975500],
+      [385,	52.311800],
+      [390,	54.648200],
+      [395,	68.701500],
+      [400,	82.754900],
+      [405,	87.120400],
+      [410,	91.486000],
+      [415,	92.458900],
+      [420,	93.431800],
+      [425,	90.057000],
+      [430,	86.682300],
+      [435,	95.773600],
+      [440,	104.865000],
+      [445,	110.936000],
+      [450,	117.008000],
+      [455,	117.410000],
+      [460,	117.812000],
+      [465,	116.336000],
+      [470,	114.861000],
+      [475,	115.392000],
+      [480,	115.923000],
+      [485,	112.367000],
+      [490,	108.811000],
+      [495,	109.082000],
+      [500,	109.354000],
+      [505,	108.578000],
+      [510,	107.802000],
+      [515,	106.296000],
+      [520,	104.790000],
+      [525,	106.239000],
+      [530,	107.689000],
+      [535,	106.047000],
+      [540,	104.405000],
+      [545,	104.225000],
+      [550,	104.046000],
+      [555,	102.023000],
+      [560,	100.000000],
+      [565,	98.167100],
+      [570,	96.334200],
+      [575,	96.061100],
+      [580,	95.788000],
+      [585,	92.236800],
+      [590,	88.685600],
+      [595,	89.345900],
+      [600,	90.006200],
+      [605,	89.802600],
+      [610,	89.599100],
+      [615,	88.648900],
+      [620,	87.698700],
+      [625,	85.493600],
+      [630,	83.288600],
+      [635,	83.493900],
+      [640,	83.699200],
+      [645,	81.863000],
+      [650,	80.026800],
+      [655,	80.120700],
+      [660,	80.214600],
+      [665,	81.246200],
+      [670,	82.277800],
+      [675,	80.281000],
+      [680,	78.284200],
+      [685,	74.002700],
+      [690,	69.721300],
+      [695,	70.665200],
+      [700,	71.609100],
+      [705,	72.979000],
+      [710,	74.349000],
+      [715,	67.976500],
+      [720,	61.604000],
+      [725,	65.744800],
+      [730,	69.885600],
+      [735,	72.486300],
+      [740,	75.087000],
+      [745,	69.339800],
+      [750,	63.592700],
+      [755,	55.005400],
+      [760,	46.418200],
+      [765,	56.611800],
+      [770,	66.805400],
+      [775,	65.094100],
+      [780,	63.382800],
+      [785,	63.843400],
+      [790,	64.304000],
+      [795,	61.877900],
+      [800,	59.451900],
+      [805,	55.705400],
+      [810,	51.959000],
+      [815,	54.699800],
+      [820,	57.440600],
+      [825,	58.876500],
+      [830,	60.312500],
+    ]));
 
-illuminants.createFlatSpectrum = function() {
-    //return illuminants.normalize(new PiecewiseLinearFunction([[375, 0.],[380, 1.],[750, 1.],[755, 0.]]));
-    return illuminants.normalize(new PiecewiseLinearFunction([[350, 1.],[780, 1.]]));
-  };
+  var flat = normalize(new PiecewiseLinearFunction([[350, 1.],[780, 1.]]));
 
-illuminants.flat = illuminants.createFlatSpectrum();
-
-illuminants.blackbody = function(temp) {
-  var samples = [];
-  var wavelen;
-  //samples.push([375, 0.]);
-  for (wavelen = 380; wavelen <= 750; wavelen += 5) {
-    var intensity = Math.pow(wavelen, -5.) / (Math.exp(14387773. / (wavelen * temp)) - 1.);
-    samples.push([1. * wavelen, intensity]);
+  var blackbody = function(temp) {
+    var samples = [];
+    var wavelen;
+    for (wavelen = 380; wavelen <= 750; wavelen += 5) {
+      var intensity = Math.pow(wavelen, -5.) / (Math.exp(14387773. / (wavelen * temp)) - 1.);
+      samples.push([1. * wavelen, intensity]);
+    }
+    return normalize(new PiecewiseLinearFunction(samples));
   }
-  //samples.push([755, 0.]);
-  return illuminants.normalize(new PiecewiseLinearFunction(samples));
-}
+
+  return { flat:flat, cieD65:cieD65, blackbody:blackbody };
+})();
 
 var getVisibleSpectrum = function(start, end, steps) {
   var color = [];
   var data = [];
-  //var scale = 0.;
   var lo = 0.;
   var hi = 0.;
   var i, j;
@@ -276,16 +263,10 @@ var getVisibleSpectrum = function(start, end, steps) {
     var dirac = new PiecewiseLinearFunction([[wl - .1, 0.], [wl, 1.], [wl + .1, 0.]]);
     var c = cie1931observer.spectrumToXyz(dirac);
     c = colors.XYZ_to_xyY(c);
-    //c[2] = Math.pow(c[2], 0.8);
-    //c = colors.xyY_desaturate(c, 0.2);
-    var c_srgb = colors.xyY_clamp_to_srgb_gamut(c);
-    c = c_srgb;//[0.2 * c[0] + 0.8 * c_srgb[0], 0.2 * c[1] + 0.8 * c_srgb[1], c[2]];
+    c = colors.xyY_clamp_to_srgb_gamut(c);
     c = colors.xyY_to_XYZ(c);
     c = colors.XYZ_to_srgb_linear(c);
-    //c = colors.XYZ_to_srgb_linear_clamp(c);
-    //c = colors.XYZ_to_srgb_linear(c);
     for (j = 0; j < 3; j++) {
-      //if (c[j] > scale) { scale = c[j]; }
       if (c[j] > hi) { hi = c[j]; }
       if (c[j] < lo) { lo = c[j]; }
     }
@@ -293,16 +274,11 @@ var getVisibleSpectrum = function(start, end, steps) {
   }
   for (i = 0; i <= steps; i++) {
     for (j = 0; j < 3; j++) {
-      //color[i][j] = Math.min(1., 2.0 * color[i][j] / scale);
       color[i][j] = (color[i][j] - lo) / (hi - lo);
     }
     var wl = start + (end - start) * i / steps;
     var y = color[i][0] * 0.2126 + color[i][1] * 0.7152 + color[i][2] * 0.0722;
     data.push([wl].concat(color[i]).concat([y]));
-    //var c = colors.srgb_linear_to_srgb(color[i]);
-    //c = colors.hexify(c);
-    //color[i] = c;
-    //console.log(color[i]);
   }
   return data;
 }
@@ -312,16 +288,12 @@ var paintVisibleSpectrum = function(canvasId, start, end) {
   var ctx = canv.getContext("2d");
   ctx.rect(0, 0, canv.width, canv.height);
   var data = getVisibleSpectrum(start, end, canv.width - 1);
-  //var grad = ctx.createLinearGradient(0, 0, canv.width, 0);
   for (i = 0; i < canv.width; i++) {
     var c = data[i].slice(1, 4);
     c = colors.srgb_linear_to_srgb(c);
     c = colors.hexify(c);
-    //grad.addColorStop(i / (data.length - 1), c);
     ctx.fillStyle = c;
     ctx.fillRect(i, 0, 1, canv.height);
   }
-  //ctx.fillStyle = grad;
-  //ctx.fill();
 }
 
