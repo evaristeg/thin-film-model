@@ -69,9 +69,9 @@
         var filter = generateFilter(thickness, reflRatio);
         var reflected = illuminant.multiply(filter);
 
-        var data_i = google.visualization.arrayToDataTable([['nm','illuminant']].concat(illuminant.points));
-        var data_f = google.visualization.arrayToDataTable([['nm','reflectance']].concat(filter.points));
-        var data_r = google.visualization.arrayToDataTable([['nm','reflected']].concat(reflected.points));
+        var data_i = google.visualization.arrayToDataTable([['nm','illuminant']].concat(illuminant.samples));
+        var data_f = google.visualization.arrayToDataTable([['nm','reflectance']].concat(filter.samples));
+        var data_r = google.visualization.arrayToDataTable([['nm','reflected']].concat(reflected.samples));
 
         var r = document.getElementById('chart_illum').getBoundingClientRect();
 
