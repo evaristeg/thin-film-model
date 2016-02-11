@@ -28,7 +28,7 @@
       }
     </style>
     <script src="piecewise.js"></script>
-    <script src="colors.js"></script>
+    <script src="colorspace.js"></script>
     <script src="radiometry.js"></script>
     <script src="thinfilm.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -128,14 +128,11 @@
         ctx.lineTo(x + 0.5, canv.height);
         ctx.stroke();
         var c = cie1931observer.spectrumToXyz(reflected);
-        c = colors.XYZ_to_xyY(c);
-        c = colors.xyY_clamp_to_srgb_gamut(c);
-        c = colors.xyY_to_XYZ(c);
-        c = colors.XYZ_to_srgb_linear(c);
+        c = colorspace.XYZ_to_srgb_linear_clamp(c);
         var i;
         for (i = 0; i < 3; i++) { c[i] = (c[i] - reflAdjust[0]) / (reflAdjust[1] - reflAdjust[0]); }
-        c = colors.srgb_linear_to_srgb(c);
-        c = colors.hexify(c);
+        c = colorspace.srgb_linear_to_srgb(c);
+        c = colorspace.hexify(c);
         ctx.lineWidth = 2;
         ctx.fillStyle = c;
         ctx.fillRect(x - 17, canv.height / 2 - 17, 35, 34);

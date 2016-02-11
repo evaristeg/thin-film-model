@@ -33,12 +33,12 @@ var paintInterference = function(canvasId, illuminant, ratio, start, end) {
     //var d = start + (end - start) * i / steps;
     var filt = generateFilter(d, ratio);
     var c = cie1931observer.spectrumToXyz(illuminant.multiply(filt));
-    c = colors.XYZ_to_xyY(c);
-    //c = colors.xyY_desaturate(c, 0.5);
-    c = colors.xyY_clamp_to_srgb_gamut(c);
+    c = colorspace.XYZ_to_xyY(c);
+    //c = colorspace.xyY_desaturate(c, 0.5);
+    c = colorspace.xyY_clamp_to_srgb_gamut(c);
     //c[2] /= 1.2;
-    c = colors.xyY_to_XYZ(c);
-    c = colors.XYZ_to_srgb_linear(c);
+    c = colorspace.xyY_to_XYZ(c);
+    c = colorspace.XYZ_to_srgb_linear(c);
     for (j = 0; j < 3; j++) {
       if (c[j] < lo) lo = c[j];
       if (c[j] > hi) hi = c[j];
@@ -51,8 +51,8 @@ var paintInterference = function(canvasId, illuminant, ratio, start, end) {
     for (j = 0; j < 3; j++) {
       c[j] = (c[j] - lo) / (hi - lo);
     }
-    c = colors.srgb_linear_to_srgb(c);
-    c = colors.hexify(c);
+    c = colorspace.srgb_linear_to_srgb(c);
+    c = colorspace.hexify(c);
     //grad.addColorStop(i / (carr.length - 1), c);
     ctx.fillStyle = c;
     ctx.fillRect(i, 0, 1, canv.height);

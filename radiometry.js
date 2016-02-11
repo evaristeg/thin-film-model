@@ -113,10 +113,7 @@ var cie1931observer = (function() {
 var illuminants = (function() {
   var normalize = function(spectrum) {
     var c = cie1931observer.spectrumToXyz(spectrum);
-    c = colors.XYZ_to_xyY(c);
-    c = colors.xyY_clamp_to_srgb_gamut(c);
-    c = colors.xyY_to_XYZ(c);
-    c = colors.XYZ_to_srgb_linear(c);
+    c = colorspace.XYZ_to_srgb_linear_clamp(c);
     var scale = 0.;
     var i;
     for (i = 0; i < 3; i++) {
@@ -262,10 +259,7 @@ var getVisibleSpectrum = function(start, end, steps) {
     var wl = start + (end - start) * i / steps;
     var dirac = new PiecewiseLinearFunction([[wl - .1, 0.], [wl, 1.], [wl + .1, 0.]]);
     var c = cie1931observer.spectrumToXyz(dirac);
-    c = colors.XYZ_to_xyY(c);
-    c = colors.xyY_clamp_to_srgb_gamut(c);
-    c = colors.xyY_to_XYZ(c);
-    c = colors.XYZ_to_srgb_linear(c);
+    c = colorspace.XYZ_to_srgb_linear_clamp(c);
     for (j = 0; j < 3; j++) {
       if (c[j] > hi) { hi = c[j]; }
       if (c[j] < lo) { lo = c[j]; }
@@ -290,8 +284,8 @@ var paintVisibleSpectrum = function(canvasId, start, end) {
   var data = getVisibleSpectrum(start, end, canv.width - 1);
   for (i = 0; i < canv.width; i++) {
     var c = data[i].slice(1, 4);
-    c = colors.srgb_linear_to_srgb(c);
-    c = colors.hexify(c);
+    c = colorspace.srgb_linear_to_srgb(c);
+    c = colorspace.hexify(c);
     ctx.fillStyle = c;
     ctx.fillRect(i, 0, 1, canv.height);
   }
