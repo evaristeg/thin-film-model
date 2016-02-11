@@ -15,13 +15,12 @@ var generateFilter = function(thicknessNm, contribRatio) {
   return new PiecewiseLinearFunction(samples);
 }
 
-var paintInterference = function(canvasId, ratio, start, end) {
+var paintInterference = function(canvasId, illuminant, ratio, start, end) {
   var canv = document.getElementById(canvasId);
   var ctx = canv.getContext("2d");
   ctx.rect(0, 0, canv.width, canv.height);
 
   var carr = [];
-  var illum = illuminants.cieD65;//blackbody(6500);
   //var logDist = Math.log(end / start);
   //var invDist = 1 / end - 1 / start;
   var sqrtDist = Math.sqrt(end) - Math.sqrt(start);
@@ -33,7 +32,7 @@ var paintInterference = function(canvasId, ratio, start, end) {
     var d = Math.pow(Math.sqrt(start) + sqrtDist * (i + 0.5) / canv.width, 2);
     //var d = start + (end - start) * i / steps;
     var filt = generateFilter(d, ratio);
-    var c = cie1931observer.spectrumToXyz(illum.multiply(filt));
+    var c = cie1931observer.spectrumToXyz(illuminant.multiply(filt));
     c = colors.XYZ_to_xyY(c);
     //c = colors.xyY_desaturate(c, 0.5);
     c = colors.xyY_clamp_to_srgb_gamut(c);
@@ -60,5 +59,6 @@ var paintInterference = function(canvasId, ratio, start, end) {
   }
   //ctx.fillStyle = grad;
   //ctx.fill();
+  return [lo, hi];
 }
 

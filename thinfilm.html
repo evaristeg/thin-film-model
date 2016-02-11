@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      .canvas_frame {
+        width: 800px;
+        height: 150px;
+        border: 10px solid black;
+      }
+      .below {
+        width: 800px;
+        height: 150px;
+        border: 0;
+        display: inline;
+        float: left;
+        margin-right: -800px;
+      }
+      .above {
+        width: 800px;
+        height: 150px;
+        border: 0;
+        display: inline;
+        float: right;
+      }
+    </style>
+    <script src="piecewise.js"></script>
+    <script src="colors.js"></script>
+    <script src="radiometry.js"></script>
+    <script src="thinfilm.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(function() { updateIlluminant(); });
+
+      var specRange = [380, 750];
+      var thickRange = [0, 2000];
+      var illuminant = illuminants.blackbody(6500);
+      var reflRatio = 1.0;
+      var lastClickedX = 0.2;
+      var reflAdjust = [0., 1.];
+
+      function updateSelection(event) {
+        var cnv = document.getElementById("if_progression");
+        lastClickedX = (event.clientX - cnv.getBoundingClientRect().left) / cnv.width;
+        doUpdate(false);
+      }
+
+      function updateIlluminant() {
+        reflAdjust = paintInterference("if_progression", illuminant, 1.0, 0, 2000);
+        doUpdate(true);
+      }
+
+      function doUpdate(illumChanged) {
+        var sqrtTRange = [Math.sqrt(thickRange[0]), Math.sqrt(thickRange[1])];
+        var thickness = Math.pow(sqrtTRange[0] + (sqrtTRange[1] - sqrtTRange[0]) * lastClickedX, 2);
+        var filter = generateFilter(thickness, reflRatio);
+        var reflected = illuminant.multiply(filter);
+
+        var data_i = google.visualization.arrayToDataTable([['nm','illuminant']].concat(illuminant.points));
+        var data_f = google.visualization.arrayToDataTable([['nm','reflectance']].concat(filter.points));
+        var data_r = google.visualization.arrayToDataTable([['nm','reflected']].concat(reflected.points));
+
+        var options = {
+          theme: 'maximized',
+          curveType: 'function',
+          colors: ['#d8d8d8'],
+          backgroundColor: 'transparent',
+          chartArea: {
+            left: 0,
+            top: 0,
+            width: 800,
+            height: 150
+          },
+          hAxis: {
+            baselineColor: 'white',
+            gridlines: { color: 'transparent' },
+            viewWindow: { min: specRange[0], max: specRange[1] },
+            textStyle: { color: 'transparent' }
+          },
+          vAxis: {
+            baselineColor: 'white',
+            gridlines: { color: 'transparent' },
+            viewWindow: {
+              //max: 1.05,
+              min: 0
+            },
+            textStyle: { color: '#c8c8c8' }
+          },
+          legend: {
+            position: 'none'
+          },
+          pointsVisible: false,
+        };
+
+        if (illumChanged) {
+          var chart_i = new google.visualization.LineChart(document.getElementById('chart_illum'));
+          chart_i.draw(data_i, options);
+        }
+        options.vAxis.viewWindow.max = 1.05;
+        var chart_f = new google.visualization.LineChart(document.getElementById('chart_filter'));
+        chart_f.draw(data_f, options);
+        options.hAxis.textStyle.color = '#c8c8c8';
+        var chart_r = new google.visualization.LineChart(document.getElementById('chart_reflect'));
+        chart_r.draw(data_r, options);
+
+        var canv = document.getElementById('selector');
+        var ctx = canv.getContext("2d");
+        ctx.clearRect(0, 0, canv.width, canv.height);
+        var x = lastClickedX * canv.width;
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, canv.height);
+        ctx.stroke();
+        var c = cie1931observer.spectrumToXyz(reflected);
+        c = colors.XYZ_to_xyY(c);
+        c = colors.xyY_clamp_to_srgb_gamut(c);
+        c = colors.xyY_to_XYZ(c);
+        c = colors.XYZ_to_srgb_linear(c);
+        var i;
+        for (i = 0; i < 3; i++) { c[i] = (c[i] - reflAdjust[0]) / (reflAdjust[1] - reflAdjust[0]); }
+        c = colors.srgb_linear_to_srgb(c);
+        console.log(c);
+        c = colors.hexify(c);
+        ctx.lineWidth = 2;
+        ctx.fillStyle = c;
+        ctx.fillRect(x - 15, canv.height / 2 - 15, 31, 30);
+        ctx.strokeRect(x - 15, canv.height / 2 - 15, 31, 30);
+      }
+    </script>
+  </head>
+  <body>
+    <div class="canvas_frame">
+      <canvas id="underlay1" class="below"></canvas>
+      <div id="chart_illum" class="above"></div>
+    </div>
+    <div class="canvas_frame">
+      <canvas id="underlay2" class="below"></canvas>
+      <div id="chart_filter" class="above"></div>
+    </div>
+    <div class="canvas_frame">
+      <canvas id="underlay3" class="below"></canvas>
+      <div id="chart_reflect" class="above"></div>
+    </div>
+    <div class="canvas_frame">
+      <canvas id="if_progression" class="below"></canvas>
+      <canvas id="selector" class="above" onclick="updateSelection(event)"></canvas>
+    </div>
+  </body>
+  <script type="text/javascript">
+    (function () {
+      var canvases = document.getElementsByTagName('canvas');
+      var i;
+      for (i = 0; i < canvases.length; i++) {
+        canvases[i].width = parseInt(window.getComputedStyle(canvases[i]).width, 10);
+      }
+    })();
+    paintVisibleSpectrum("underlay1", specRange[0], specRange[1]);
+    paintVisibleSpectrum("underlay2", specRange[0], specRange[1]);
+    paintVisibleSpectrum("underlay3", specRange[0], specRange[1]);
+  </script>
+</html>
+
