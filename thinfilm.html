@@ -40,7 +40,7 @@
       var specRange = [380, 750];
       var maxThickness = 2000;
       var illuminant;
-      var reflAdjust;
+      var bounds;
 
       function selectorClicked(event) {
         var cnv = document.getElementById("selector");
@@ -88,7 +88,7 @@
         var wp = (pol > 0 ? 0 : 0.5);
 
         if (rerender) {
-            reflAdjust = paintInterference("if_progression", illuminant, 0, maxThickness, angle, iorFilm, iorBack, ws, wp);
+            bounds = paintInterference("if_progression", illuminant, 0, maxThickness, angle, iorFilm, iorBack, ws, wp);
         }
 
         var filter = generateFilter(thickness, angle, iorFilm, iorBack, ws, wp);
@@ -135,9 +135,10 @@
           var chart_i = new google.visualization.LineChart(document.getElementById('chart_illum'));
           chart_i.draw(data_i, options);
         }
-        //options.vAxis.viewWindow.max = 1.05;
+        options.vAxis.viewWindow.max = 1.05 * bounds.reflectanceHi;
         var chart_f = new google.visualization.LineChart(document.getElementById('chart_filter'));
         chart_f.draw(data_f, options);
+        options.vAxis.viewWindow.max = 1.05 * bounds.reflectedHi;
         options.hAxis.textStyle.color = '#c8c8c8';
         var chart_r = new google.visualization.LineChart(document.getElementById('chart_reflect'));
         chart_r.draw(data_r, options);
@@ -155,7 +156,7 @@
         var c = cie1931observer.spectrumToXyz(reflected);
         c = colorspace.XYZ_to_srgb_linear_clamp(c);
         var i;
-        for (i = 0; i < 3; i++) { c[i] = (c[i] - reflAdjust[0]) / (reflAdjust[1] - reflAdjust[0]); }
+        for (i = 0; i < 3; i++) { c[i] = (c[i] - bounds.rgbLo) / (bounds.rgbHi - bounds.rgbLo); }
         c = colorspace.srgb_linear_to_srgb(c);
         c = colorspace.hexify(c);
         ctx.lineWidth = 2;

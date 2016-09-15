@@ -15,6 +15,26 @@ PiecewiseLinearFunction.prototype.integrate = function() {
   return sum;
 }
 
+PiecewiseLinearFunction.prototype.min = function() {
+  var min = this.samples[0][1];
+  var i;
+  for (i = 1; i < this.samples.length; i++) {
+    if (this.samples[i][1] < min)
+      min = this.samples[i][1];
+  }
+  return min;
+}
+
+PiecewiseLinearFunction.prototype.max = function() {
+  var max = this.samples[0][1];
+  var i;
+  for (i = 1; i < this.samples.length; i++) {
+    if (this.samples[i][1] > max)
+      max = this.samples[i][1];
+  }
+  return max;
+}
+
 PiecewiseLinearFunction.prototype.scale = function(s) {
   var pts = [];
   var i;

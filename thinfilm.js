@@ -47,11 +47,20 @@ var paintInterference = function(canvasId, illuminant, start, end, angle, iorFil
   var carr = [];
   var sqrtDist = Math.sqrt(end) - Math.sqrt(start);
   var i, j;
-  var lo = 0, hi = 0;
+  var lo = 0, hi = 0, maxFiltPeak = 0, maxSpecPeak = 0;
   for (i = 0; i < canv.width; i++) {
     var d = Math.pow(Math.sqrt(start) + sqrtDist * (i + 0.5) / canv.width, 2);
     var filt = generateFilter(d, angle, iorFilm, iorBack, ws, wp);
-    var c = cie1931observer.spectrumToXyz(illuminant.multiply(filt));
+    var peak = filt.max();
+    if (peak > maxFiltPeak) {
+      maxFiltPeak = peak;
+    }
+    var spectrum = illuminant.multiply(filt);
+    var peak = spectrum.max();
+    if (peak > maxSpecPeak) {
+      maxSpecPeak = peak;
+    }
+    var c = cie1931observer.spectrumToXyz(spectrum);
     c = colorspace.XYZ_to_srgb_linear_clamp(c);
     for (j = 0; j < 3; j++) {
       if (c[j] < lo) lo = c[j];
@@ -69,6 +78,11 @@ var paintInterference = function(canvasId, illuminant, start, end, angle, iorFil
     ctx.fillStyle = c;
     ctx.fillRect(i, 0, 1, canv.height);
   }
-  return [lo, hi];
+  return {
+    rgbLo: lo,
+    rgbHi: hi,
+    reflectanceHi: maxFiltPeak,
+    reflectedHi: maxSpecPeak
+  };
 }
 
