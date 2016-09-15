@@ -35,50 +35,76 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
       google.charts.load('current', {'packages':['corechart']});
-      google.charts.setOnLoadCallback(function() { updateIlluminant(); });
+      google.charts.setOnLoadCallback(function() { illuminantSelected(); });
 
-      var specRange = [380, 750];
+      var values = {
+        thickness: 600,
+        angle: 0,
+        transit: 600,
+        ior_f: 1.33,
+        ior_b: 1.0,
+        pol: 0
+      };
       var maxThickness = 2000;
+      var specRange = [380, 750];
       var illuminant;
       var bounds;
+
+      function publish(newVals) {
+        var repaintProgression = false;
+        Object.keys(newVals).forEach(function (key) {
+          if (values[key] != newVals[key]) {
+            values[key] = newVals[key];
+            document.getElementById(key).value = values[key];
+            if (key != 'thickness' && key != 'transit') {
+              repaintProgression = true;
+            }
+          }
+        });
+        return repaintProgression;
+      }
 
       function selectorClicked(event) {
         var cnv = document.getElementById("selector");
         var x = (event.clientX - cnv.getBoundingClientRect().left) / cnv.width;
-        var t = Math.pow(x, 2) * maxThickness;
-        document.getElementById('thickness').value = t;
-        argsUpdated();
+        var th = Math.pow(x, 2) * maxThickness;
+        var tr = Math.pow(x, 2) * 2000.;
+        publish({thickness: th, transit: tr});
+        doUpdate(false, false);
       }
 
-      function thicknessUpdated() {
-        doUpdate(false);
-      }
-
-      function angleUpdated() {
-        var thickness = document.getElementById('thickness').value;
-        var angle = document.getElementById('angle').value;
-        var cos = Math.cos(angle * Math.PI / 180.);
-        var oldMax = maxThickness;
-        maxThickness = 2000. * cos;
-        thickness = thickness * maxThickness / oldMax;
-        document.getElementById('thickness').value = thickness;
-        doUpdate(true);
-      }
-
-      function argsUpdated() {
-        doUpdate(true);
-      }
-
-      function updateIlluminant() {
+      function illuminantSelected() {
         if (document.getElementById('illum_flat').checked) { illuminant = illuminants.flat; }
         else if (document.getElementById('illum_d65').checked) { illuminant = illuminants.cieD65; }
         else if (document.getElementById('illum_bb').checked) {
           illuminant = illuminants.blackbody(document.getElementById('bb_temp').value);
         }
-        doUpdate(true);
+        doUpdate(true, true);
       }
 
-      function doUpdate(rerender) {
+      function valuesUpdated() {
+        var newVals = {};
+        Object.keys(values).forEach(function (key) {
+          newVals[key] = Number(document.getElementById(key).value);
+        });
+        var sine = Math.sin(newVals['angle'] * Math.PI / 180.) / newVals['ior_f'];
+        var cosine = Math.sqrt(1 - sine * sine);
+        if (newVals['transit'] != values['transit'] || newVals['angle'] != values['angle'] || newVals['ior_f'] != values['ior_f']) {
+          newVals['thickness'] = newVals['transit'] * cosine;
+          maxThickness = 2000. * cosine;
+        }
+        else if (newVals['thickness'] != values['thickness']) {
+          newVals['transit'] = newVals['thickness'] / cosine;
+        }
+        if (newVals['thickness'] > maxThickness) {
+          newVals['thickness'] = maxThickness;
+        }
+        var repaint = publish(newVals);
+        document.getElementById('thickness').max = (maxThickness + 0.5).toFixed(0);
+        doUpdate(repaint, false);
+      }
+
+      function doUpdate(repaintProg, rechartIllum) {
         var thickness = document.getElementById('thickness').value;
         var angle = document.getElementById('angle').value;
         var iorFilm = document.getElementById('ior_f').value;
@@ -87,14 +113,13 @@
         var ws = (pol < 0 ? 0 : 0.5);
         var wp = (pol > 0 ? 0 : 0.5);
 
-        if (rerender) {
-            bounds = paintInterference("if_progression", illuminant, 0, maxThickness, angle, iorFilm, iorBack, ws, wp);
+        if (repaintProg) {
+          bounds = paintInterference("if_progression", illuminant, 0, maxThickness, angle, iorFilm, iorBack, ws, wp);
         }
 
         var filter = generateFilter(thickness, angle, iorFilm, iorBack, ws, wp);
         var reflected = illuminant.multiply(filter);
 
-        var data_i = google.visualization.arrayToDataTable([['nm','illuminant']].concat(illuminant.samples));
         var data_f = google.visualization.arrayToDataTable([['nm','reflectance']].concat(filter.samples));
         var data_r = google.visualization.arrayToDataTable([['nm','reflected']].concat(reflected.samples));
 
@@ -131,7 +156,8 @@
           pointsVisible: false,
         };
 
-        if (rerender) {
+        if (rechartIllum) {
+          var data_i = google.visualization.arrayToDataTable([['nm','illuminant']].concat(illuminant.samples));
           var chart_i = new google.visualization.LineChart(document.getElementById('chart_illum'));
           chart_i.draw(data_i, options);
         }
@@ -169,17 +195,23 @@
   <body>
     <p>
       Illuminant:<br>
-      <input type="radio" name="illum_radio" id="illum_flat" onchange="updateIlluminant()" checked> Flat<br>
-      <input type="radio" name="illum_radio" id="illum_d65" onchange="updateIlluminant()"> CIE D65 (daylight)<br>
-      <input type="radio" name="illum_radio" id="illum_bb" onchange="updateIlluminant()"> Blackbody: 
-      <input type="number" id="bb_temp" min="1" max="50000" value="6500" onchange="updateIlluminant()"> K
+      <input type="radio" name="illum_radio" id="illum_flat" onchange="illuminantSelected()" checked> Flat<br>
+      <input type="radio" name="illum_radio" id="illum_d65" onchange="illuminantSelected()"> CIE D65 (daylight)<br>
+      <input type="radio" name="illum_radio" id="illum_bb" onchange="illuminantSelected()"> Blackbody: 
+      <input type="number" id="bb_temp" min="1" max="50000" value="6500" onchange="illuminantSelected()"> K
     </p>
     <p>
-      Film thickness: <input type="number" id="thickness" min="0" max="2000" value="600" onchange="thicknessUpdated()"> nm
-      Angle of incidence: <input type="number" id="angle" min="0" max="89" value="0" onchange="angleUpdated()"> degrees
-      Film IOR: <input type="number" id="ior_f" min="1.0" max="5.0" value="1.33" step="0.01" onchange="argsUpdated()">
-      Back IOR: <input type="number" id="ior_b" min="1.0" max="1000" value="1.0" step="0.05" onchange="argsUpdated()">
-      Polarization: <input type="number" id="pol" min="-1" max="1" value="0" step="1" onchange="argsUpdated()">
+      Film thickness: <input type="number" id="thickness" min="0" max="2000" value="600" onchange="valuesUpdated()"> nm
+      <br>
+      Angle of incidence: <input type="number" id="angle" min="0" max="89" value="0" onchange="valuesUpdated()"> degrees
+      <br>
+      Observed transit length: <input type="number" id="transit" min="0" max="2000" value="600" onchange="valuesUpdated()"> nm
+      <br>
+      Film IOR: <input type="number" id="ior_f" min="1.0" max="5.0" value="1.33" step="0.01" onchange="valuesUpdated()">
+      <br>
+      Back IOR: <input type="number" id="ior_b" min="1.0" max="5.0" value="1.0" step="0.01" onchange="valuesUpdated()">
+      <br>
+      Polarization: <input type="number" id="pol" min="-1" max="1" value="0" step="1" onchange="valuesUpdated()">
     </p>
     <div class="canvas_frame">
       <canvas id="underlay1" class="below"></canvas>
