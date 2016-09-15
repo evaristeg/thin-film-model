@@ -27,6 +27,7 @@
         float: right;
       }
     </style>
+    <script src="complex.js"></script>
     <script src="piecewise.js"></script>
     <script src="colorspace.js"></script>
     <script src="radiometry.js"></script>
@@ -39,7 +40,6 @@
       var specRange = [380, 750];
       var maxThickness = 2000;
       var illuminant;
-      var reflRatio = 1.0;
       var reflAdjust;
 
       function selectorClicked(event) {
@@ -47,11 +47,26 @@
         var x = (event.clientX - cnv.getBoundingClientRect().left) / cnv.width;
         var t = Math.pow(x, 2) * maxThickness;
         document.getElementById('thickness').value = t;
-        thicknessUpdated();
+        argsUpdated();
       }
 
       function thicknessUpdated() {
         doUpdate(false);
+      }
+
+      function angleUpdated() {
+        var thickness = document.getElementById('thickness').value;
+        var angle = document.getElementById('angle').value;
+        var cos = Math.cos(angle * Math.PI / 180.);
+        var oldMax = maxThickness;
+        maxThickness = 2000. * cos;
+        thickness = thickness * maxThickness / oldMax;
+        document.getElementById('thickness').value = thickness;
+        doUpdate(true);
+      }
+
+      function argsUpdated() {
+        doUpdate(true);
       }
 
       function updateIlluminant() {
@@ -60,13 +75,23 @@
         else if (document.getElementById('illum_bb').checked) {
           illuminant = illuminants.blackbody(document.getElementById('bb_temp').value);
         }
-        reflAdjust = paintInterference("if_progression", illuminant, 1.0, 0, maxThickness);
         doUpdate(true);
       }
 
-      function doUpdate(illumChanged) {
+      function doUpdate(rerender) {
         var thickness = document.getElementById('thickness').value;
-        var filter = generateFilter(thickness, reflRatio);
+        var angle = document.getElementById('angle').value;
+        var iorFilm = document.getElementById('ior_f').value;
+        var iorBack = document.getElementById('ior_b').value;
+        var pol = document.getElementById('pol').value;
+        var ws = (pol < 0 ? 0 : 0.5);
+        var wp = (pol > 0 ? 0 : 0.5);
+
+        if (rerender) {
+            reflAdjust = paintInterference("if_progression", illuminant, 0, maxThickness, angle, iorFilm, iorBack, ws, wp);
+        }
+
+        var filter = generateFilter(thickness, angle, iorFilm, iorBack, ws, wp);
         var reflected = illuminant.multiply(filter);
 
         var data_i = google.visualization.arrayToDataTable([['nm','illuminant']].concat(illuminant.samples));
@@ -106,11 +131,11 @@
           pointsVisible: false,
         };
 
-        if (illumChanged) {
+        if (rerender) {
           var chart_i = new google.visualization.LineChart(document.getElementById('chart_illum'));
           chart_i.draw(data_i, options);
         }
-        options.vAxis.viewWindow.max = 1.05;
+        //options.vAxis.viewWindow.max = 1.05;
         var chart_f = new google.visualization.LineChart(document.getElementById('chart_filter'));
         chart_f.draw(data_f, options);
         options.hAxis.textStyle.color = '#c8c8c8';
@@ -150,6 +175,10 @@
     </p>
     <p>
       Film thickness: <input type="number" id="thickness" min="0" max="2000" value="600" onchange="thicknessUpdated()"> nm
+      Angle of incidence: <input type="number" id="angle" min="0" max="89" value="0" onchange="angleUpdated()"> degrees
+      Film IOR: <input type="number" id="ior_f" min="1.0" max="5.0" value="1.33" step="0.01" onchange="argsUpdated()">
+      Back IOR: <input type="number" id="ior_b" min="1.0" max="1000" value="1.0" step="0.05" onchange="argsUpdated()">
+      Polarization: <input type="number" id="pol" min="-1" max="1" value="0" step="1" onchange="argsUpdated()">
     </p>
     <div class="canvas_frame">
       <canvas id="underlay1" class="below"></canvas>
