@@ -7,7 +7,7 @@ var generateFilter = function(thicknessNm, contribRatio) {
     var phase = 4. * Math.PI * thicknessNm / wavelen;
     var x = back * Math.cos(phase) - front;
     var y = back * Math.sin(phase);
-    samples.push([wavelen, Math.sqrt(x*x + y*y)]);
+    samples.push([wavelen, x*x + y*y]);
   }
   return new PiecewiseLinearFunction(samples);
 }
