@@ -36,7 +36,10 @@ var generateFilter = function(thicknessNm, angle, iorFilm, iorBack, ws, wp) {
     var pPow = pSum.mul(pSum.conjugate());
     samples.push([wavelen, ws * sPow + wp * pPow]);
   }
-  return new PiecewiseLinearFunction(samples);
+  return {
+    filter: new PiecewiseLinearFunction(samples),
+    phasors: [ph0, ph1, ph2]
+  };
 }
 
 var paintInterference = function(canvasId, illuminant, start, end, angle, iorFilm, iorBack, ws, wp) {
@@ -50,7 +53,7 @@ var paintInterference = function(canvasId, illuminant, start, end, angle, iorFil
   var lo = 0, hi = 0, maxFiltPeak = 0, maxSpecPeak = 0;
   for (i = 0; i < canv.width; i++) {
     var d = Math.pow(Math.sqrt(start) + sqrtDist * (i + 0.5) / canv.width, 2);
-    var filt = generateFilter(d, angle, iorFilm, iorBack, ws, wp);
+    var filt = generateFilter(d, angle, iorFilm, iorBack, ws, wp).filter;
     var peak = filt.max();
     if (peak > maxFiltPeak) {
       maxFiltPeak = peak;
